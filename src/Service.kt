@@ -68,40 +68,103 @@ class Service {
 
         fun processKmeans(isEuclidean: Boolean) {
             val data = getSourceData()
-            val centroids: MutableList<DataDTO> = mutableListOf()
+            val startCentroids: MutableList<DataDTO> = mutableListOf()
 
-            for (i in 1..NUMBER_OF_CLUSTERS) {
+            for (i in 0 until NUMBER_OF_CLUSTERS) {
                 val centroid = data[Random.nextInt(data.size)]
-                println("Центроид №${i}: " + centroid)
-                centroids.add(centroid)
+                println("Центроид №${i+1}: " + centroid)
+                startCentroids.add(centroid)
             }
 
             val table = HashMap<String, ParamDTO>()
             if (isEuclidean) {
-                data.forEach { table[it.index] = getClusterNumberEuclidean(centroids, it) }
+                data.forEach { table[it.index] = getClusterNumberEuclidean(startCentroids, it) }
             } else {
-                data.forEach { table[it.index] = getClusterNumberManhattan(centroids, it) }
+                data.forEach { table[it.index] = getClusterNumberManhattan(startCentroids, it) }
             }
 
-            println("\nИтерация №1")
-            table.forEach { println(it) }
+            println("Первоначальное распределение по кластерам")
+            table.forEach { println("Запись ${it.key} - кластер ${it.value.cluster}") }
 
-            val E = getRatioE(table)
-            println("E = $E")
+            var E = getRatioE(table)
+            println("Сумма квадратичных ошибок = $E\n")
+
+            var iterations = 1
+
             do {
-                for ((index, value) in centroids.withIndex()) {
+                println("\nИтерация №$iterations")
 
+                E = getRatioE(table)
+
+                val newCentroids: MutableList<DataDTO> = mutableListOf()
+                for (i in 0 until NUMBER_OF_CLUSTERS) {
+                    val newRatio = getCentroidRatio(i, table, data)
+                    val newValue = getCentroidValue(i, table, data)
+                    val newCity = getCentroidCity(i, table, data)
+                    val c = DataDTO("c$i", newRatio, newValue, newCity)
+                    println("Центроид №${i+1}: " + c)
+                    newCentroids.add(c)
                 }
+
+                if (isEuclidean) {
+                    data.forEach { table[it.index] = getClusterNumberEuclidean(newCentroids, it) }
+                } else {
+                    data.forEach { table[it.index] = getClusterNumberManhattan(newCentroids, it) }
+                }
+                table.forEach { println("Запись ${it.key} - кластер ${it.value.cluster}") }
+
                 val curE = getRatioE(table)
-            } while (E - curE < 0.01)
+                println("Сумма квадратичных ошибок = $curE\n")
+                iterations++
+            } while (E - curE > 0.01)
+
+            for (i in 0 until NUMBER_OF_CLUSTERS) {
+                println("\nКластер №$i")
+                table.filter { it.value.cluster == i }.forEach { print("${it.key} ") }
+            }
+
         }
 
-        private fun getCentroidRatio(index: Int, table: HashMap<String, Int>, data: List<DataDTO>): Double {
+        private fun getCentroidRatio(index: Int, table: HashMap<String, ParamDTO>, data: List<DataDTO>): Double {
             var ratio = 0.0
             var count = 0
 
-            table.forEach {  }
-            return 0.0
+            table.filter { it.value.cluster == index }.forEach { entry ->
+                ratio += data.find { it.index == entry.key }!!.ratio
+                count++
+            }
+            return if (count != 0) ratio.div(count) else ratio
+        }
+
+        private fun getCentroidValue(index: Int, table: HashMap<String, ParamDTO>, data: List<DataDTO>): Int {
+            var value = 0
+            var count = 0
+
+            table.filter { it.value.cluster == index }.forEach { entry ->
+                value += data.find { it.index == entry.key }!!.value
+                count++
+            }
+            return if (count != 0) value.div(count) else value
+        }
+
+        private fun getCentroidCity(index: Int, table: HashMap<String, ParamDTO>, data: List<DataDTO>): String {
+            val tlt = "Тольятти"; var tltCount = 0
+            table.filter { it.value.cluster == index }.forEach { entry ->
+                if (data.find { it.index == entry.key }!!.city == tlt) tltCount++
+            }
+            val smr = "Самара"; var smrCount = 0
+            table.filter { it.value.cluster == index }.forEach { entry ->
+                if (data.find { it.index == entry.key }!!.city == smr) smrCount++
+            }
+            val chp = "Чапаевск"; var chpCount = 0
+            table.filter { it.value.cluster == index }.forEach { entry ->
+                if (data.find { it.index == entry.key }!!.city == chp) chpCount++
+            }
+            return when (maxOf(tltCount, smrCount, chpCount)) {
+                tltCount -> tlt
+                smrCount -> smr
+                else -> chp
+            }
         }
 
         private fun getClusterNumberEuclidean(centroids: MutableList<DataDTO>, node: DataDTO): ParamDTO {
