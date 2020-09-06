@@ -67,6 +67,7 @@ class Service {
         }
 
         fun processKmeans(isEuclidean: Boolean) {
+            Random(2)
             val data = getSourceData()
             val startCentroids: MutableList<DataDTO> = mutableListOf()
 
