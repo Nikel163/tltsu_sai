@@ -242,16 +242,28 @@ class Service {
             return if (res.minus(res.toInt()) >= 0.5) res.toInt() + 1 else res.toInt()
         }
 
-        fun prepareDataForPlot(list: List<DataDTO>): Map<String, List<Any>> {
-            val indexList: List<String> = list.map { it.index }
-            val ratioList: List<Double> = list.map { it.ratio }
-            val valueList: List<Int> = list.map { it.value }
-            val cityList: List<String> = list.map { it.city }
+        fun prepareDataForPlot(table: HashMap<String, ParamDTO>): Map<String, List<Any>> {
+            val source = Service.getSourceData()
+            val indexList: MutableList<String> = mutableListOf()
+            val ratioList: MutableList<Double> = mutableListOf()
+            val valueList: MutableList<Int>    = mutableListOf()
+            val cityList: MutableList<String>  = mutableListOf()
+            val clusterList: MutableList<String>  = mutableListOf()
+
+            table.forEach { entry ->
+                indexList.add(entry.key)
+                ratioList.add(source.find { it.index == entry.key }!!.ratio)
+                valueList.add(source.find { it.index == entry.key }!!.value)
+                cityList.add(source.find { it.index == entry.key }!!.city)
+                clusterList.add(entry.value.cluster.toString())
+            }
+
             return mapOf(
                     "index" to indexList,
                     "x" to valueList,
                     "y" to ratioList,
-                    "city" to cityList
+                    "city" to cityList,
+                    "cluster" to clusterList
             )
         }
     }
