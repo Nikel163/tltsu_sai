@@ -1,3 +1,5 @@
+import java.math.BigDecimal
+import java.math.RoundingMode
 import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -9,7 +11,7 @@ class Service {
     companion object {
         private const val NUMBER_OF_CLUSTERS = 3
 
-        private fun getSourceData(): List<DataDTO> {
+        fun getSourceData(): List<DataDTO> {
             return listOf(
                     DataDTO("A", 0.394, 122, "Тольятти"),
                     DataDTO("B", 0.060, 186, "Самара"),
@@ -64,6 +66,11 @@ class Service {
                     DataDTO("AY",0.171, 18, "Чапаевск"),
                     DataDTO("AZ",0.795, 203, "Тольятти")
             )
+        }
+
+        private fun getNormalizeData(source: List<DataDTO>): List<DataDTO> {
+            val result: MutableList<DataDTO> = mutableListOf()
+            return result
         }
 
         fun processKmeans(isEuclidean: Boolean) {
@@ -217,7 +224,36 @@ class Service {
         private fun isSameTown(centroid: DataDTO, node: DataDTO): Int {
             return if (centroid.city == node.city) 0 else 1
         }
-    }
 
+        private fun getNormalizeRatio(ratio: Double): Double {
+            return BigDecimal((ratio - 0.01).div(0.99)).setScale(4, RoundingMode.HALF_UP).toDouble()
+        }
+
+        fun getNormalizeValue(value: Int): Double {
+            return BigDecimal((value - 1.0).div(299)).setScale(4, RoundingMode.HALF_UP).toDouble()
+        }
+
+        fun getDenormalizeRatio(ratio: Double): Double {
+            return BigDecimal((ratio * 0.99).plus(0.01)).setScale(2, RoundingMode.HALF_UP).toDouble()
+        }
+
+        fun getDenormalizeValue(value: Double): Int {
+            val res = BigDecimal((value * 299).plus(1)).setScale(2, RoundingMode.HALF_UP).toDouble()
+            return if (res.minus(res.toInt()) >= 0.5) res.toInt() + 1 else res.toInt()
+        }
+
+        fun prepareDataForPlot(list: List<DataDTO>): Map<String, List<Any>> {
+            val indexList: List<String> = list.map { it.index }
+            val ratioList: List<Double> = list.map { it.ratio }
+            val valueList: List<Int> = list.map { it.value }
+            val cityList: List<String> = list.map { it.city }
+            return mapOf(
+                    "index" to indexList,
+                    "x" to valueList,
+                    "y" to ratioList,
+                    "city" to cityList
+            )
+        }
+    }
 
 }
