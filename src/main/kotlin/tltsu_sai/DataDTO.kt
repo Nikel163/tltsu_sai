@@ -1,7 +1,7 @@
 data class DataDTO (
     val index: String,
     val ratio: Double,
-    val value: Int,
+    val value: Double,
     val city: String
 )
 
